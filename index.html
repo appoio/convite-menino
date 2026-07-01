@@ -900,7 +900,7 @@
       </div>
       <div class="rsvp-field">
         <label class="rsvp-label" for="rsvp-tel">WhatsApp (com DDD) *</label>
-        <input class="rsvp-input" type="tel" id="rsvp-tel" placeholder="Ex.: 21 99999-9999" autocomplete="tel" />
+        <input class="rsvp-input" type="tel" id="rsvp-tel" placeholder="Ex.: 21 99999-9999" autocomplete="tel" inputmode="numeric" maxlength="15" />
       </div>
       <div class="rsvp-field">
         <label class="rsvp-label" for="rsvp-obs">Observações (opcional)</label>
@@ -1079,27 +1079,44 @@
       document.getElementById("drawer-rsvp").classList.add("aberto");
       document.getElementById("overlay").classList.add("aberto");
       document.body.style.overflow = "hidden";
+
+      // Máscara de telefone — só números, formata (XX) XXXXX-XXXX
+      const telInput = document.getElementById("rsvp-tel");
+      telInput.addEventListener("input", function () {
+        let v = this.value.replace(/\D/g, "").slice(0, 11);
+        if (v.length > 10) {
+          v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+        } else if (v.length > 6) {
+          v = v.replace(/^(\d{2})(\d{4})(\d*)$/, "($1) $2-$3");
+        } else if (v.length > 2) {
+          v = v.replace(/^(\d{2})(\d*)$/, "($1) $2");
+        }
+        this.value = v;
+      });
     }
 
     async function enviarRSVP() {
-      const nome = document.getElementById("rsvp-nome").value.trim();
-      const tel  = document.getElementById("rsvp-tel").value.trim();
-      const obs  = document.getElementById("rsvp-obs").value.trim();
-      const erro = document.getElementById("rsvp-erro");
+      const nome   = document.getElementById("rsvp-nome").value.trim();
+      const telRaw = document.getElementById("rsvp-tel").value.replace(/\D/g, "");
+      const obs    = document.getElementById("rsvp-obs").value.trim();
+      const erro   = document.getElementById("rsvp-erro");
 
-      // Validação
+      // Validação nome
       if (!nome) {
         erro.textContent = "⚠️ Por favor, preencha seu nome.";
         erro.style.display = "block";
         document.getElementById("rsvp-nome").focus();
         return;
       }
-      if (!tel) {
-        erro.textContent = "⚠️ Por favor, preencha seu WhatsApp.";
+
+      // Validação telefone — mínimo 10 dígitos (DDD + número)
+      if (!telRaw || telRaw.length < 10) {
+        erro.textContent = "⚠️ Telefone inválido. Digite o DDD + número (ex: 21 99999-9999).";
         erro.style.display = "block";
         document.getElementById("rsvp-tel").focus();
         return;
       }
+
       erro.style.display = "none";
 
       // Loading
@@ -1111,8 +1128,9 @@
       submitBtn.disabled       = true;
 
       // Mensagem do WhatsApp
+      const telFormatado = document.getElementById("rsvp-tel").value.trim();
       const msgWA = encodeURIComponent(
-        `${CONFIG.whatsappMsg}\nNome: ${nome}\nTelefone: ${tel}` +
+        `Olá! ${CONFIG.whatsappMsg}\nNome: ${nome}\nTelefone: ${telFormatado}` +
         (obs ? `\nObs: ${obs}` : "")
       );
       const waURL = `https://wa.me/${CONFIG.whatsappTel}?text=${msgWA}`;
@@ -1128,7 +1146,7 @@
             body: JSON.stringify({
               festa:    CONFIG.nome,
               nome,
-              telefone: tel,
+              telefone: telRaw,
               obs:      obs || "—",
               data:     new Date().toLocaleString("pt-BR"),
             }),

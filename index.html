@@ -1081,8 +1081,12 @@
       document.body.style.overflow = "hidden";
 
       // Máscara de telefone — só números, formata (XX) XXXXX-XXXX
+      // FIX: usar "oninput =" (sobrescreve) em vez de "addEventListener"
+      // (addEventListener empilhava um novo listener toda vez que o
+      // drawer era reaberto, fazendo a formatação rodar várias vezes
+      // sobre o mesmo valor e quebrar o resultado).
       const telInput = document.getElementById("rsvp-tel");
-      telInput.addEventListener("input", function () {
+      telInput.oninput = function () {
         let v = this.value.replace(/\D/g, "").slice(0, 11);
         if (v.length > 10) {
           v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
@@ -1092,7 +1096,7 @@
           v = v.replace(/^(\d{2})(\d*)$/, "($1) $2");
         }
         this.value = v;
-      });
+      };
     }
 
     async function enviarRSVP() {
